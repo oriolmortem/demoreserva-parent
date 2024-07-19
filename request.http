@@ -1,0 +1,29 @@
+# POST http://localhost:8080/bideafactory/book/
+# Content-Type: application/json
+
+# {
+#     "id": "14564088-4",
+#     "name": "Gonzalo",
+#     "lastName": "Perez",
+#     "age": 33,
+#     "phoneNumber": "56988123222",
+#     "startDate": "2024-07-28",
+#     "endDate": "2024-07-28",
+#     "houseId": "213132",
+#     "discountCode": "D0542A23"
+# }
+
+POST http://localhost:8080/bideafactory/book/
+Content-Type: application/json
+
+{
+    "id": "14564088-4",
+    "name": "Gonzalo",
+    "lastName": "Perez",
+    "age": 33,
+    "phoneNumber": "56988123222",
+    "startDate": "2024-07-28",
+    "endDate": "2024-07-28",
+    "houseId": "2342",
+    "discountCode": "D0542A23"
+}
