@@ -27,7 +27,7 @@ public class ReservaResource {
     public ResponseEntity<String> book(@RequestBody Reserva reserva) throws Exception {
         try {
             reservaService.book(reserva);
-            return ResponseEntity.ok("Book accepted.");
+            return ResponseEntity.ok("Book accepted");
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             if (e.getMessage().startsWith("ERROR")) {
