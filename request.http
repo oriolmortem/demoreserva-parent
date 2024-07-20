@@ -17,7 +17,7 @@ POST http://localhost:8080/bideafactory/book/
 Content-Type: application/json
 
 {
-    "id": "14564088-4",
+    "id": "14564088-6",
     "name": "Gonzalo",
     "lastName": "Perez",
     "age": 33,

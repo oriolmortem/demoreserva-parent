@@ -36,9 +36,13 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     public void book(Reserva r) throws Exception {
         try {
-            if (validateRequest(r) && validateDiscountCode(r)) {
-                r.setCreationTime(LocalDateTime.now());
-                reservaPersistence.save(r);
+            if (validateRequest(r)) {
+                if (validateDiscountCode(r)) {
+                    r.setCreationTime(LocalDateTime.now());
+                    reservaPersistence.save(r);
+                } else {
+                    throw new Exception("CONFLICT: Invalid discount code.");
+                }
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -46,7 +50,7 @@ public class ReservaServiceImpl implements ReservaService {
         }
     }
 
-    private boolean validateRequest(Reserva r) throws Exception {
+    public boolean validateRequest(Reserva r) throws Exception {
 
         if (r.getId().trim().isEmpty()) {
             throw new Exception("ERROR:ID usuario no válido");
@@ -82,56 +86,56 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     private boolean validateDiscountCode(Reserva r) throws Exception {
+        HttpStatusCode statusCode = null;
+        boolean responseStatusCode = false;
 
-        if (!r.getDiscountCode().trim().isEmpty()) {
-            String url = "https://sbv2bumkomidlxwffpgbh4k6jm0ydskh.lambda-url.us-east-1.on.aws/";
+        if (r.getDiscountCode().trim().isEmpty())
+            return true;
 
-            // Set headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+        String url = "https://sbv2bumkomidlxwffpgbh4k6jm0ydskh.lambda-url.us-east-1.on.aws/";
 
-            // Request body
-            String jsonBody = "{ \"userId\": \"" + r.getId()
-                    + "\", \"houseId\": \"" + r.getHouseId() + "\", \"discountCode\": \"" + r.getDiscountCode()
-                    + "\" }";
-            HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
+        // Set headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-            int attempt = 0;
-            while (attempt < MAX_RETRIES) {
-                try {
-                    restTemplate.setRequestFactory(new SimpleClientHttpRequestFactory() {
-                        @Override
-                        protected void prepareConnection(HttpURLConnection connection, String method)
-                                throws IOException {
-                            connection.setConnectTimeout((int) TIMEOUT_MS);
-                            connection.setReadTimeout((int) TIMEOUT_MS);
-                            super.prepareConnection(connection, method);
-                        }
-                    });
+        // Request body
+        String jsonBody = "{ \"userId\": \"" + r.getId()
+                + "\", \"houseId\": \"" + r.getHouseId() + "\", \"discountCode\": \"" + r.getDiscountCode()
+                + "\" }";
+        HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
 
-                    ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity,
-                            String.class);
-
-                    HttpStatusCode statusCode = responseEntity.getStatusCode();
-                    String responseBody = responseEntity.getBody();
-                    JSONObject jsonObject = new JSONObject(responseBody);
-                    boolean responseStatusCode = jsonObject.getBoolean("status");
-
-                    if (!(statusCode == HttpStatus.OK && responseStatusCode)) {
-                        throw new Exception("CONFLICT: Invalid discount.");
-                    } else {
-                        break;
+        int attempt = 0;
+        while (attempt < MAX_RETRIES) {
+            try {
+                restTemplate.setRequestFactory(new SimpleClientHttpRequestFactory() {
+                    @Override
+                    protected void prepareConnection(HttpURLConnection connection, String method)
+                            throws IOException {
+                        connection.setConnectTimeout((int) TIMEOUT_MS);
+                        connection.setReadTimeout((int) TIMEOUT_MS);
+                        super.prepareConnection(connection, method);
                     }
-                } catch (Exception e) {
-                    attempt++;
-                    if (attempt == MAX_RETRIES) {
-                        throw new Exception("CONFLICT: Max retries reached.");
-                    } else {
-                        throw e;
-                    }
+                });
+
+                ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity,
+                        String.class);
+                statusCode = responseEntity.getStatusCode();
+                String responseBody = responseEntity.getBody();
+                JSONObject jsonObject = new JSONObject(responseBody);
+                responseStatusCode = jsonObject.getBoolean("status");
+
+                if (statusCode == HttpStatus.OK && responseStatusCode) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (Exception e) {
+                attempt++;
+                if (attempt == MAX_RETRIES) {
+                    throw new Exception("CONFLICT: Max retries reached.");
                 }
             }
         }
-        return true;
+        return false;
     }
 }
